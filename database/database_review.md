@@ -1,40 +1,38 @@
-# RoomMate AI — Veritabanı tasarım incelemesi
+# RoomMate AI — teslim durumu ve sınırlar
 
-## Sonuç
+> Bu sonuçlar çalışan yerel sistem içindir. Paylaşım branchindeki backend eksikliği [BACKEND_UYUM_NOTU.md](BACKEND_UYUM_NOTU.md) içinde açıklanır; aynı sonucun temiz klonda kendiliğinden alınacağı iddia edilmez.
 
-Mevcut backend ile uyumlu ve ilk PostgreSQL geçişi için gerekli uygulama şeması, Django'nun standart `auth`/`admin`/`contenttypes`/`sessions` tabloları ile `profil_profil` tablosudur. `profil.0002_profil_ai_uyumluluk_alanlari`, bu mevcut Profile üç uyumluluk alanı ekler; yeni iş tablosu veya elle oluşturulmuş indeks eklemez.
+4 Kasım 2026: Mevcut PostgreSQL 18 veritabanı korundu, yedeklendi, eksik profil.0002 migration'ı uygulandı. Django check/migration kontrolü geçti. Frontend'den kayıt, giriş, profil oluşturma, anket ve konum/bütçe güncellemesi yapıldı. Sayfa yenilemesi ve bağımsız PostgreSQL sorgusu kalıcılığı doğruladı. Otomatik entegrasyon betiğinde 14 kontrol geçti.
 
-Bu kararın nedeni, AI tarafındaki alan sözleşmesinin `Profil` ile henüz uyumlu olmamasıdır. Uyumsuzluğu veritabanında geçici/varsayımsal tablolarla kapatmak yerine, onaylı backend/AI sözleşmesinden sonra Django migration'ı ile ilerlemek gerekir.
+## Çalışan özellikler
 
-## AI–Profil uyumsuzluk raporu
+- Ana sayfa ve mevcut logo/renk/tasarım çizgisi.
+- Gerçek kullanıcı kaydı; kullanıcı adı/e-posta doğrulamaları ve şifre hash'i.
+- Oturum tabanlı giriş/çıkış; sayfa yenilendikten sonra oturumu geri yükleme.
+- Profil oluşturma, okuma, güncelleme.
+- Yaşam alışkanlıkları ve tercihlerinin profile kaydı.
+- Aranan şehir/ilçeler, bütçe alt/üst sınırı ve taşınma tarihinin profile kaydı.
+- Hatalı bütçe aralığının frontend ve PostgreSQL seviyesinde engellenmesi.
+- Mobil/masaüstü görünüm ve form hata/başarı durumları.
 
-| Alan | `Profil` | AI | Risk / öneri |
-|---|---|---|---|
-| Konum | `sehir`, `ilce`, `aranan_sehir`, JSON `aranan_ilceler` | Tek metin `location`/`konum` | Aranan şehir ve ilçe kesişim kuralı netleşmeden doğrudan eşleme yapılamaz. |
-| Bütçe | Tek, nullable `kira_butcesi` | Zorunlu `budget_min`/`budget_max` | Aralık kullanılacaksa yeni iki alan ve `min <= max` kuralı, onaylı Django migration'ıyla eklenmeli. |
-| Yaş | 18–120 `smallint` | `age`/`yas` tam sayı | Yalnız alan adı dönüşümü gerekir. |
-| Sigara | Nullable boolean + üç değerli kabul tercihi | Üç kategorili durum (`occasional` dahil) | Boolean üçüncü değeri taşımaz; ürün kararıyla kategorik alan/dönüşüm gerekir. |
-| Temizlik | 1–5 sayı | Çıkarımda dört etiket; aday CSV'sinde 1–5 | Model 5'i eşleyemez. Modelin yeniden eğitimi veya ölçek daraltma kararı gerekir. |
-| Gürültü | Davranış ve tercih için iki 1–5 sayı | Etiketli `noise_tolerance`; ham CSV'de `noise_level` | Davranış/tolerans ayrımı ve dönüşüm kuralı yoktur. |
-| Evcil hayvan | Sahiplik boolean + `evet`/`hayir`/`fark_etmez` kabulü | `Yes`/`No` kabulü; ham CSV'de karışık `pets` | Sahiplik ve kabul ayrı kalmalı; `fark_etmez` model kararı gerektirir. |
+## Backend desteği bekleyen özellikler
 
-## AI kodundan doğrulanan riskler
+- Başka kullanıcıları aday olarak listeleme ve gerçek aday sorgusuna konum/bütçe filtresi uygulama.
+- AI fonksiyonlarını canlı Profil kayıtlarıyla çağırma; sonuç API'si.
+- Eşleşme geçmişinin uygulamadan yazılması/okunması.
+- Mesaj gönderme, alma ve sohbet listeleme.
 
-- `ev_arkadasi_onerisi.py` aday için `noise_tolerance` ve `pet_acceptance` okur; `roommate_dataset.csv` ise `noise_level` ve `pets` içerir. CSV doğrudan gönderilirse sütun hatası oluşur.
-- `uyum_tahmini.py`, `yas_farki`, `sigara_ayni`, `temizlik_farki`, `gurultu_farki`, `evcil_hayvan_tercihi_ayni` özelliklerini üretir. Taşınma tarihi ve kullanım amacı kullanılmaz.
-- Eğitim verisi Singapur öğrenci verisi, aday CSV'si ise Nepal konumları içerir. Hedef kullanıcı kitlesi, para birimi ve skor kalitesi ürün verisiyle doğrulanmalıdır.
-- `joblib` pickle tabanlıdır; yalnız güvenilir kaynaklı artefakt yüklenmelidir. Eğitim veri sürümü, metrik, tarih ve bağımlılık sürümü kaydedilmelidir.
+Arayüzler hazır ve eksik destek açıkça belirtilir. Sahte aday, uyum yüzdesi veya gönderilmiş gibi gösterilen mesaj yoktur. Konum/bütçe ekranı şimdilik arama tercihini kaydeder; gerçek aday filtrelemesi yaptığı iddia edilmez.
 
-## Onaydan sonra önerilen işlemler
+## Yaren'e aktarılacak bulgular
 
-1. Bütçe aralığı, para birimi ve konum filtre semantiğini ürün sahibiyle kesinleştirmek.
-2. Sigara, temizlik, gürültü ve evcil hayvan için kanonik değer sözleşmesini belirlemek.
-3. Bu sözleşmeye göre Yaren'in yeni model/migration hazırlamasını sağlamak; veritabanı sorumlusu olarak migration SQL'ini incelemek.
-4. Gerçek aday sorgusu oluşunca `EXPLAIN (ANALYZE, BUFFERS)` ile gerekli indeksleri belirlemek.
-5. Eşleşme geçmişi/beğeni/skor denetimi istenirse iki yönlü Profil FK'si, skor, karar, model sürümü ve zaman damgası içeren ayrı etkileşim modeli tasarlamak.
+1. `backend` URL'leri yalnız hesap ve kendi profil API'lerini sunuyor. Yeni endpoint/model kodu bu çalışmada yazılmadı.
+2. AI ham CSV'sinde öneri fonksiyonunun beklediği name, noise_tolerance ve pet_acceptance sütunları yok. Gerçek profil -> AI girdi dönüşümü gerekiyor.
+3. Modelin temizlik etiketi 1–4; Profil 1–5. fark_etmez evcil hayvan tercihi Yes/No'ya doğrudan dönüştürülemez. Keyfi dönüşüm yapılmadı.
+4. AI için gerekli paketler backend sanal ortamında kurulu değil. Model eğitimi çalıştırılmadı, joblib dosyası değiştirilmedi/yüklenmedi.
+5. Giriş endpoint'inin anonim CSRF davranışı doğrulama testinde açıklandı; backend_connection_guide.md ayrıntı içerir.
+6. Bütçe aralık kontrolü PostgreSQL'de var; mevcut serializer bu aralık için özel API hatası üretmiyor. Frontend ters aralığı API'ye göndermeden engeller. Gelecekte Yaren serializer seviyesinde de doğrulamalıdır.
 
-## Bu teslimatta yapılmayanlar
+## Veri koruma
 
-- Backend, frontend, AI, CSV veya model artefaktı değiştirilmedi.
-- PostgreSQL'e bağlanılmadı; SQL çalıştırılmadı; migration uygulanmadı.
-- Mevcut dosya silinmedi, taşınmadı veya yeniden adlandırılmadı.
+Başlangıçta hesap/profil sayıları 0 idi. Sonrasında tarayıcıyla sunum hesabı ve ayrı bir doğrulama hesabı eklendi. Hesaplar test/sunum amaçlıdır, gerçek aday olarak kullanılmamalıdır. Hiçbir mevcut kayıt silinmedi. Mesaj kısıt testleri transaction içinde geri alındı. Yerel sırlar ve yedekler .gitignore kapsamındadır.

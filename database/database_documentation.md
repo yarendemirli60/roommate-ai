@@ -1,74 +1,48 @@
-# RoomMate AI — PostgreSQL tablo sözlüğü
+# RoomMate AI — PostgreSQL veri sözlüğü
 
-## Oluşacak tablolar
+> Aşağıdaki test sonuçları çalışan yerel sunum sistemine aittir. Uzak backend ile fark ve temiz kurulum önkoşulu için [uyum notunu](BACKEND_UYUM_NOTU.md) okuyun. Kurulum komutları [README](../README.md) içindedir.
 
-`INSTALLED_APPS` içindeki Django uygulamaları ve mevcut migration'lar aşağıdaki tabloları oluşturur. `accounts` uygulaması için model/migration olmadığı için kendi tablosu yoktur.
+4 Kasım 2026 tarihinde mevcut veritabanına bağlanıldı; başlangıçta 11 tablo, 0 kullanıcı ve 0 profil vardı. PostgreSQL 18.6 localhost:5433 üzerinde çalışıyor. Veritabanı roommate_ai, uygulama rolü roommate_app. Veritabanı yeniden oluşturulmadı veya sıfırlanmadı.
 
-| Tablo | Sahibi | Amaç |
-|---|---|---|
-| `django_migrations` | Django | Uygulanmış migration geçmişi. Elle değiştirilmez. |
-| `django_content_type` | Django | Yüklü model türlerinin uygulama/model tanımı. |
-| `auth_permission` | Django auth | Her model için izin tanımları. |
-| `auth_group` | Django auth | Rol/grup tanımları. |
-| `auth_group_permissions` | Django auth | Grup–izin çoka-çok ilişki tablosu. |
-| `auth_user` | Django auth | Varsayılan kullanıcı hesabı. |
-| `auth_user_groups` | Django auth | Kullanıcı–grup çoka-çok ilişki tablosu. |
-| `auth_user_user_permissions` | Django auth | Kullanıcı–izin çoka-çok ilişki tablosu. |
-| `django_admin_log` | Django admin | Admin arayüzündeki işlem günlüğü. |
-| `django_session` | Django sessions | Giriş/çıkış akışındaki veritabanı oturumları. |
-| `profil_profil` | RoomMate AI | Kullanıcı profili, arama bilgisi, alışkanlık ve tercihleri. |
+## Uygulanan işlemler
 
-## Uygulama tablosu: `profil_profil`
+- Değişiklikten önce Git dışında tutulan yerel bir PostgreSQL dump yedeği alındı; pg_restore liste kontrolü geçti.
+- Mevcut `profil.0002_profil_ai_uyumluluk_alanlari` migration'ı uygulandı. Backend/migration kaynakları değiştirilmedi.
+- `messaging_matches.sql` ile 3 ek tablo oluşturuldu. Toplam 14 uygulama/altyapı tablosu var.
+- `makemigrations --check --dry-run` yeni model değişikliği bulmadı.
 
-`kullanici_id`, `auth_user.id` alanına FK'dir ve benzersiz olduğundan bir kullanıcının en fazla bir profili olabilir. `NULL` sütunları, migration'daki gerçek `null=True` ayarına göre yazılmıştır.
+## Django tarafından yönetilen tablolar
 
-| Alan | PostgreSQL tipi | PK/FK | NULL | UNIQUE | Açıklama |
-|---|---|---|---|---|---|
-| `id` | `bigint` | PK | Hayır | PK | Django `BigAutoField`. |
-| `kullanici_id` | `integer` | FK → `auth_user.id` | Hayır | Evet | Profil sahibi; silinmesi profili de siler. |
-| `ad`, `soyad` | `varchar(50)` | — | Hayır | Hayır | Kullanıcının adı ve soyadı. |
-| `yas` | `smallint` | — | Hayır | Hayır | Modelde 18–120 doğrulaması var. |
-| `sehir`, `ilce` | `varchar(50)` | — | Hayır | Hayır | Mevcut şehir ve ilçe. |
-| `meslek` | `varchar(100)` | — | Hayır | Hayır | Meslek bilgisi. |
-| `hakkimda` | `text` | — | Hayır | Hayır | En çok 1000 karakter; boş metin olabilir. |
-| `kullanim_amaci` | `varchar(20)` | — | Hayır | Hayır | `ev_ariyorum`, `evime_arkadas`, `birlikte_ev`. |
-| `aranan_sehir` | `varchar(50)` | — | Hayır | Hayır | Aranan şehir; boş metin olabilir. |
-| `aranan_ilceler` | `jsonb` | — | Hayır | Hayır | Aranan ilçe metinleri; uygulama varsayılanı `[]`. |
-| `kira_butcesi` | `numeric(10,2)` | — | Evet | Hayır | Mevcut tek bütçe alanı. |
-| `kira_butcesi_min`, `kira_butcesi_max` | `numeric(10,2)` | — | Evet | Hayır | `0002` migration'ıyla eklenen AI aday filtresi bütçe aralığı. |
-| `tasinma_tarihi` | `date` | — | Evet | Hayır | Planlanan taşınma tarihi. |
-| `sigara`, `evcil_hayvan` | `boolean` | — | Evet | Hayır | Kullanıcının alışkanlık/sahiplik durumu. |
-| `sigara_durumu` | `varchar(12)` | — | Hayır | Hayır | `non_smoker`, `smoker`, `occasional`; `0002` migration'ıyla eklenir. |
-| `temizlik`, `gurultu` | `smallint` | — | Evet | Hayır | Kullanıcının 1–5 yaşam alışkanlığı puanı. |
-| `sigara_kabulu`, `evcil_hayvan_kabulu` | `varchar(12)` | — | Hayır | Hayır | `evet`, `hayir`, `fark_etmez`; boş metin olabilir. |
-| `minimum_temizlik`, `maksimum_gurultu` | `smallint` | — | Evet | Hayır | Karşı taraf için 1–5 tercih sınırları. |
-| `olusturulma_tarihi`, `guncellenme_tarihi` | `timestamp with time zone` | — | Hayır | Hayır | Django `auto_now_add` / `auto_now` zaman damgaları. |
+`auth_user`, `auth_group`, `auth_permission`, `auth_user_groups`, `auth_user_user_permissions`, `auth_group_permissions`, `django_content_type`, `django_admin_log`, `django_session`, `django_migrations`, `profil_profil`.
 
-> Model validator'ları ve `choices` tanımları mevcut migration'da PostgreSQL `CHECK` kısıtına dönüşmez. Bu kasıtlı tasarımın sonucu olarak 18–120, 1–5 ve seçim değerleri Django doğrulamasıyla korunur. Veritabanı seviyesinde zorunlu kılınmaları istenirse Yaren'in onayıyla yeni Django migration'ı gerekir.
+Hesap kaydı `auth_user` tablosuna Django'nun parola hash mekanizmasıyla yazılır. `accounts` ayrı bir tablo tanımlamaz. `profil_profil.kullanici_id` benzersiz FK ile `auth_user.id` alanına bağlıdır. Kullanıcı silmede profil temizliği Django modelindeki on_delete=CASCADE davranışına aittir; fiziksel PostgreSQL FK'si doğrudan ON DELETE CASCADE tanımlamaz.
 
-## Kimlik, yetki ve oturum tabloları
+## Profil alanları
 
-| Tablo | Alanlar ve kısıtlar |
+| Grup | Alanlar / türler |
 |---|---|
-| `auth_user` | `id integer PK`; `username varchar(150) NOT NULL UNIQUE`; `email varchar(254) NOT NULL` ancak benzersiz değil; `password varchar(128) NOT NULL`; `last_login timestamptz NULL`; `first_name`, `last_name varchar(150) NOT NULL`; `is_staff`, `is_active`, `is_superuser boolean NOT NULL`; `date_joined timestamptz NOT NULL`. |
-| `auth_group` | `id integer PK`; `name varchar(150) NOT NULL UNIQUE`. |
-| `django_content_type` | `id integer PK`; `app_label varchar(100) NOT NULL`; `model varchar(100) NOT NULL`; (`app_label`, `model`) benzersiz. |
-| `auth_permission` | `id integer PK`; `name varchar(255) NOT NULL`; `content_type_id integer NOT NULL FK`; `codename varchar(100) NOT NULL`; (`content_type_id`, `codename`) benzersiz. |
-| `auth_user_groups` | `id bigint PK`; `user_id integer NOT NULL FK`; `group_id integer NOT NULL FK`; (`user_id`, `group_id`) benzersiz. |
-| `auth_user_user_permissions` | `id bigint PK`; `user_id integer NOT NULL FK`; `permission_id integer NOT NULL FK`; (`user_id`, `permission_id`) benzersiz. |
-| `auth_group_permissions` | `id bigint PK`; `group_id integer NOT NULL FK`; `permission_id integer NOT NULL FK`; (`group_id`, `permission_id`) benzersiz. |
-| `django_admin_log` | `id integer PK`; `action_time timestamptz NOT NULL`; `user_id integer NOT NULL FK`; `content_type_id integer NULL FK`; `object_id text NULL`; `object_repr varchar(200) NOT NULL`; `action_flag smallint NOT NULL`; `change_message text NOT NULL`. |
-| `django_session` | `session_key varchar(40) PK`; `session_data text NOT NULL`; `expire_date timestamptz NOT NULL`, indeksli. |
-| `django_migrations` | `id bigint PK`; `app varchar(255) NOT NULL`; `name varchar(255) NOT NULL`; `applied timestamptz NOT NULL`. |
+| Kimlik | id bigint PK; kullanici_id integer UNIQUE FK |
+| Kişisel | ad/soyad varchar(50), yas smallint, sehir/ilce varchar(50), meslek varchar(100), hakkimda text |
+| Arayış | kullanim_amaci varchar(20), aranan_sehir varchar(50), aranan_ilceler jsonb, tasinma_tarihi date NULL |
+| Bütçe | kira_butcesi, kira_butcesi_min, kira_butcesi_max numeric(10,2) NULL |
+| Alışkanlık | sigara boolean NULL, sigara_durumu varchar(12), evcil_hayvan boolean NULL, temizlik/gurultu smallint NULL |
+| Tercihler | sigara_kabulu/evcil_hayvan_kabulu varchar(12), minimum_temizlik/maksimum_gurultu smallint NULL |
+| Tarihler | olusturulma_tarihi/guncellenme_tarihi timestamptz |
 
-## İndeksler ve kısıtlar
+Bütçe minimum/maksimum negatif olamaz; ikisi de doluysa minimum <= maksimum PostgreSQL CHECK ile korunur. Yaş 18–120, alışkanlık puanları 1–5 ve seçim değerleri mevcut API validator'larıyla doğrulanır; bunları kapsayan yeni backend migration'ı yazılmadı. Aranan ilçeler API'de boş olmayan metinlerden oluşan bir listedir. Bütçe aylık, kişi başı TL olarak gösterilir.
 
-Django migration'larının oluşturacağı gerekli indeks/kısıtlar:
+## Veritabanı sorumluluğunda eklenen tablolar
 
-- Her tablonun PK indeksi.
-- `auth_user.username`, `auth_group.name`, `profil_profil.kullanici_id` benzersiz indeksleri.
-- İçerik türü, izin ve ara tablolardaki bileşik benzersiz kısıtlar.
-- FK alanlarındaki Django indeksleri ve `django_session.expire_date` indeksi.
-- `profil.0002_profil_ai_uyumluluk_alanlari` ile `kira_butcesi_min` ve `kira_butcesi_max` için negatif olmama; iki değer doluysa `min <= max` `CHECK` kısıtları.
+| Tablo | Alanlar ve kurallar |
+|---|---|
+| roommate_match | bigint id PK; kullanici_id ve aday_id auth_user FK; aynı kişi olamaz; kullanıcı-aday çifti UNIQUE; nullable numeric(8,2) skor; array türünde jsonb aciklamalar; model_surumu; oluşturma zamanı |
+| roommate_conversation | bigint id PK; kullanici_a_id/kullanici_b_id auth_user FK; a < b; çift UNIQUE; oluşturma zamanı |
+| roommate_message | bigint id PK; konusma_id ve a/b kullanıcı kimlikleri birlikte konuşmaya composite FK; gonderen_id auth_user FK ve konuşmanın iki üyesinden biri olmak zorunda; 1–4000 karakter içerik; oluşturma/okunma zamanı |
 
-Ek aday eşleştirme indeksi **şu an eklenmemelidir**. AI kodunun `location` ve bütçe aralığı alanları `Profil` ile aynı sözleşmeye sahip değildir. Sorgu ve alanlar onaylanınca, `EXPLAIN (ANALYZE, BUFFERS)` ile ölçülen gerçek endpoint için yalnız Django migration'ı üzerinden indeks eklenmelidir.
+Ek tablolardaki auth_user FK'leri ON DELETE CASCADE kullanır. Mesajın composite FK'si konuşmadaki üyelerle birebir eşleşir; başka konuşmanın üyesi mesaj gönderemez. Konuşma/tarih indeksi mesaj sıralamasını destekler. Skorun ölçeği mevcut model/API sözleşmesinde doğrulanmadığı için varsayımsal yüzde CHECK'i eklenmedi. Gerçek/sahte AI sonucu veritabanına yazılmadı.
+
+**Bu üç tablo için backend modeli veya HTTP endpoint'i yoktur.** Tablo oluşturmak mesajlaşmayı/AI'yi uygulamada çalışır hale getirmez. UI bunu açıkça belirtir. Yaren ileride model/migration eklerken mevcut tabloları ve sahipliğini dikkate almalıdır; aynı tabloları körlemesine yeniden CREATE etmemelidir.
+
+## Doğrulama
+
+`database/verify.ps1` API ve bağımsız psycopg bağlantısı üzerinden 14 kontrol yapar. Ayrı doğrulama hesabının profilini oluşturur/günceller. Mevcut kullanıcıları silmez. Mesaj/eşleşme kısıt testleri transaction içinde geri alınır; gerçek kullanıcı verisi silinmez. Rapor `.local/verification-report.json` dosyasındadır.

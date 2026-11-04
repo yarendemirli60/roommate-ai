@@ -1,0 +1,5 @@
+# Exact versions used by the existing working local account/profile API.
+# AI training/inference dependencies are owned by the backend/AI workstream.
+Django==6.1.2
+djangorestframework==3.18.3
+psycopg[binary]==3.3.6

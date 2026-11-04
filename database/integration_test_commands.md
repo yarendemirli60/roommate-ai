@@ -1,57 +1,28 @@
-# PostgreSQL entegrasyonu — onay sonrası test sırası
+# RoomMate AI — çalıştırılmış doğrulama
 
-Bu komutlar bu çalışma sırasında çalıştırılmamıştır. Önce yerel terminalde gizli değerleri tanımlayın; parolayı hiçbir dosyaya yazmayın.
+Bu sonuçlar çalışan yerel backend sürümüyle alındı. Temiz klonda önce README ve BACKEND_UYUM_NOTU.md adımları tamamlanmalıdır.
 
-```powershell
-cd C:\Users\Administrator\RoomMate-AI\backend
-.\.venv\Scripts\Activate.ps1
-$env:DJANGO_SECRET_KEY = "yerel-gizli-anahtar"
-$env:DB_PASSWORD = "<roommate_app_parolasi>"
-```
-
-## 1. Bağlantıyı doğrula — şema değiştirmez
+Proje kökünden:
 
 ```powershell
-python manage.py shell -c "from django.db import connection; connection.ensure_connection(); print(connection.vendor)"
+.\database\manage.ps1 check
+.\database\manage.ps1 showmigrations profil
+.\database\manage.ps1 makemigrations --check --dry-run
+.\start.ps1 -NoBrowser
+.\database\verify.ps1
+cd frontend
+npm.cmd run lint
+npm.cmd run build
 ```
 
-Başarılı sonuç `postgresql` olmalıdır. Bu komut bağlantı açar ama tablo, migration veya veri yazmaz.
+Yerel .env runtime.ps1 ile yüklenir; sırlar komut satırına verilmez. verify.ps1 ayrı doğrulama hesabını oluşturur/günceller. Bu hesabın rastgele bilgileri .local/verification-account.json içindedir. Sunum hesabını değiştirmez ve hiçbir kayıt silmez. Yeniden çalıştırılabilir.
 
-## 2. Migration planını gör — şema değiştirmez
+## Sonuçlar
 
-```powershell
-python manage.py check
-python manage.py showmigrations
-python manage.py makemigrations --check --dry-run
-python manage.py migrate --plan
-python manage.py sqlmigrate profil 0002
-```
+14 entegrasyon kontrolü geçti: anonim profil erişiminin engellenmesi; hatalı kayıt; kayıt ve tekrar kayıt kontrolü; yanlış şifre; oturumlu giriş; token olmadan oturumlu profil değişikliğinin engellenmesi; yaşam alışkanlıklarıyla profil; tekrar profil ve yaş doğrulaması; güncelleme ve GET; bağımsız PostgreSQL bağlantısıyla kalıcılık/parola hash doğrulaması; ters bütçenin DB'de engellenmesi; mesaj/ilişki kısıtları; çıkış; yeni HTTP oturumundan aynı profilin okunması.
 
-`makemigrations --check` Django sürümüne göre migration geçmişi bağlantısını kontrol edebilir; bu yüzden `DB_PASSWORD` tanımlı olmalıdır. `sqlmigrate` çıktısında iki sütun ve üç `CHECK` kısıtı görünmelidir.
+Mesaj kısıt testlerinin geçici kayıtları transaction ile geri alınır. Kalıcı olarak eklenen kayıtlar yalnız sunum ve doğrulama hesapları/profilleridir. Mevcut veriler silinmez.
 
-## 3. Açık onaydan sonra uygula — şemayı değiştirir
+Giriş API'sinin anonim CSRF davranışı testte ayrıca kaydedildi: mevcut endpoint geçerli bilgileri tokensız da kabul ediyor; Yaren'in incelemesi gereken bu davranış backend_connection_guide.md'de açıklanmıştır. Rapor .local/verification-report.json içindedir.
 
-```powershell
-python manage.py migrate
-python manage.py showmigrations profil
-```
-
-Bu aşama Django'nun tüm bekleyen migration'larını uygular. İlk PostgreSQL geçişinde `auth_*`, `django_*` ve `profil_profil` tablolarını oluşturur; mevcut bir veritabanında yalnız henüz uygulanmamış migration'ları uygular.
-
-## 4. Uygulama sonrası doğrulama
-
-```powershell
-python manage.py dbshell
-```
-
-`psql` içinde:
-
-```sql
-\d profil_profil
-SELECT app, name, applied
-FROM django_migrations
-WHERE app = 'profil'
-ORDER BY applied;
-```
-
-Beklenen yeni sütunlar `kira_butcesi_min`, `kira_butcesi_max` ve `sigara_durumu`; beklenen kısıtlar da `profil_kira_butcesi_*` adlarıyla görünmelidir.
+Tarayıcı üzerinden kayıt, giriş, profil oluşturma, yaşam alışkanlığı güncelleme, bütçe doğrulama ve sayfa yenilemesi sonrası veri korunması da test edildi. Ortak bir sunum hesabı veya parola paylaşılmaz; UI üzerinden kendi deneme hesabınızı oluşturun. Betik ayrıca en az bir başka deneme kullanıcısının varlığını bekler.
