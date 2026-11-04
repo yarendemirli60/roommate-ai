@@ -45,10 +45,34 @@ class Profil(models.Model):
         blank=True,
         validators=[MinValueValidator(0)],
     )
+    kira_butcesi_min = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+    )
+    kira_butcesi_max = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+    )
     tasinma_tarihi = models.DateField(null=True, blank=True)
 
     # Kişinin kendi yaşam alışkanlıkları
     sigara = models.BooleanField(null=True, blank=True)
+    sigara_durumu = models.CharField(
+        max_length=12,
+        choices=[
+            ("non_smoker", "Sigara içmiyorum"),
+            ("smoker", "Sigara içiyorum"),
+            ("occasional", "Ara sıra içiyorum"),
+        ],
+        blank=True,
+    )
+
     evcil_hayvan = models.BooleanField(null=True, blank=True)
     temizlik = models.PositiveSmallIntegerField(
         null=True,

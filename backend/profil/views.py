@@ -2,7 +2,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
 from .models import Profil
-from .serializers import ProfilSerializer
+from .serializers import ProfilSerializer, AdaySerializer
 
 
 class ProfilOlustur(generics.CreateAPIView):
@@ -30,4 +30,17 @@ class ProfilDetay(generics.RetrieveUpdateAPIView):
         return get_object_or_404(
             Profil,
             kullanici=self.request.user,
+        )
+
+class AdayListesi(generics.ListAPIView):
+    serializer_class = AdaySerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        return (
+            Profil.objects
+            .filter(kullanici__is_active=True)
+            .exclude(kullanici=self.request.user)
+            .order_by("-olusturulma_tarihi")
         )

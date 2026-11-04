@@ -34,7 +34,32 @@ class ProfilSerializer(serializers.ModelSerializer):
             if alan in attrs:
                 return attrs[alan]
             return getattr(self.instance, alan, None)
+        minimum = deger("kira_butcesi_min")
+        maksimum = deger("kira_butcesi_max")
 
+        if minimum is not None and maksimum is not None:
+            if minimum > maksimum:
+                raise serializers.ValidationError({
+                    "kira_butcesi_max":
+                        "En yüksek bütçe, en düşük bütçeden küçük olamaz."
+                })
+
+        if "sigara_durumu" in attrs and attrs["sigara_durumu"]:
+            beklenen = attrs["sigara_durumu"] != "non_smoker"
+
+            if "sigara" in attrs and attrs["sigara"] != beklenen:
+                raise serializers.ValidationError({
+                    "sigara": "Sigara durumuyla tutarlı olmalıdır."
+                })
+
+            attrs["sigara"] = beklenen
+
+        elif "sigara" in attrs:
+            attrs["sigara_durumu"] = (
+                "" if attrs["sigara"] is None
+                else "smoker" if attrs["sigara"]
+                else "non_smoker"
+            )
         amac = deger("kullanim_amaci")
 
         if amac in (
@@ -63,4 +88,21 @@ class ProfilSerializer(serializers.ModelSerializer):
             if hatalar:
                 raise serializers.ValidationError(hatalar)
 
-        return attrs
+        return attrs 
+
+class AdaySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profil
+        fields = [
+            "id",
+            "ad",
+            "yas",
+            "sehir",
+            "ilce",
+            "meslek",
+            "hakkimda",
+            "kullanim_amaci",
+            "aranan_sehir",
+            "kira_butcesi_min",
+            "kira_butcesi_max",
+        ]

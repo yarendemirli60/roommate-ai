@@ -11,6 +11,7 @@ from .serializers import GirisSerializer, KayitSerializer
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@csrf_protect
 def kayit(request):
     serializer = KayitSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
@@ -29,9 +30,10 @@ def kayit(request):
     )
 
 
-@csrf_protect
+
 @api_view(["POST"])
 @permission_classes([AllowAny])
+@csrf_protect
 def giris(request):
     serializer = GirisSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
