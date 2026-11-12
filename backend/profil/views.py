@@ -4,6 +4,13 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Profil
 from .serializers import ProfilSerializer, AdaySerializer
 
+from django.shortcuts import get_object_or_404
+from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from .uyum import profili_tahmin_girdisine_cevir
 
 class ProfilOlustur(generics.CreateAPIView):
     serializer_class = ProfilSerializer
@@ -44,3 +51,37 @@ class AdayListesi(generics.ListAPIView):
             .exclude(kullanici=self.request.user)
             .order_by("-olusturulma_tarihi")
         )
+
+class UyumIstegiSerializer(serializers.Serializer):
+    aday_profil_id = serializers.IntegerField(min_value=1)
+
+
+class UyumAnalizi(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        istek = UyumIstegiSerializer(data=request.data)
+        istek.is_valid(raise_exception=True)
+
+        kendi_profilim = get_object_or_404(Profil, kullanici=request.user)
+
+        gorunur_adaylar = Profil.objects.filter(
+            kullanici__is_active=True
+        ).exclude(kullanici=request.user)
+
+        aday = get_object_or_404(
+            gorunur_adaylar,
+            pk=istek.validated_data["aday_profil_id"],
+        )
+
+        from ai.uyum_tahmini import uyum_hesapla
+
+        try:
+            sonuc = uyum_hesapla(
+                profili_tahmin_girdisine_cevir(kendi_profilim),
+                profili_tahmin_girdisine_cevir(aday),
+            )
+        except ValueError as hata:
+            raise ValidationError({"mesaj": str(hata)}) from hata
+
+        return Response(sonuc)
