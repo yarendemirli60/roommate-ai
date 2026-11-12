@@ -16,5 +16,6 @@ urlpatterns = [
     path("api/session-csrf/", session_csrf),
     path("api/", include("accounts.urls")),
     path("api/profil/", include("profil.urls")),
+    path("api/mesajlar/", include("mesajlar.urls")), 
 ]
 
