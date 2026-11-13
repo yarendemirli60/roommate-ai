@@ -59,6 +59,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .brand-ai { color: #7963e7; margin-left: -5px; }
 .nav-links { display: flex; gap: 32px; color: #6f6c7d; font-size: 14px; }
 .nav-links a:hover, .text-button:hover { color: #6652d9; }
+.nav-links a[aria-current=page] { color: #6652d9; font-weight: 700; }
+/* Keep the listing entry reachable alongside account actions on small screens. */
+@media (max-width: 620px) {
+  .navbar { flex-wrap: wrap; }
+  .navbar .nav-links { display: flex; flex-wrap: wrap; order: 3; width: 100%; justify-content: center; gap: 10px 16px; font-size: 12px; padding-bottom: 8px; }
+}
 
 .nav-button, .primary-button {
   display: inline-flex;
@@ -351,17 +357,7 @@ main.workspace-content { min-height: 55vh; }
 .compatibility-grid .surface { padding: 23px; }
 .compatibility-grid p { font-size: 11px; }
 .compatibility-grid .feature-icon { width: 38px; height: 38px; font-size: 20px; border-radius: 12px; }
-.messaging-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); padding: 0; overflow: hidden; min-height: 450px; }
-.messaging-layout > aside { padding: 25px; border-right: 1px solid #eee8f4; }
-.messaging-layout aside h2 { display: flex; justify-content: space-between; align-items: center; margin: 0 0 30px; }
-.messaging-layout aside p { font-size: 12px; }
 .muted { font-size: 11px; line-height: 1.7; color: #9a8aa6; }
-.message-placeholder { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px 25px 20px; text-align: center; }
-.message-placeholder h2 { font-size: 20px; }
-.message-placeholder p { max-width: 320px; font-size: 12px; }
-.message-compose { width: 100%; display: flex; gap: 12px; margin-top: auto; padding-top: 35px; }
-.message-compose input { width: 100%; min-width: 0; border-radius: 11px; padding: 13px; background: #f8f5fb; border: 1px solid #eee8f4; font-size: 11px; }
-.message-compose button { border: 0; border-radius: 11px; padding: 10px 15px; color: #fff; background: #9f8dca; }
 @media (min-width: 901px) { .workspace-sidebar { position: sticky; top: 15px; align-self: start; } }
 @media (max-width: 1000px) {
   .workspace-layout { gap: 20px; grid-template-columns: 190px minmax(0, 1fr); padding-left: 24px; padding-right: 24px; }
@@ -370,7 +366,6 @@ main.workspace-content { min-height: 55vh; }
   .auth-story { padding-left: 30px; padding-right: 30px; }
   .auth-card { padding-left: 35px; padding-right: 35px; }
   .compatibility-grid { grid-template-columns: 1fr; }
-  .messaging-layout { grid-template-columns: 170px minmax(0, 1fr); }
 }
 @media (max-width: 760px) {
   .mobile-logout { display: inline-block; }
@@ -414,10 +409,6 @@ main.workspace-content { min-height: 55vh; }
   .auth-story { padding: 25px; }
   .welcome-banner { padding: 25px 22px; }
   .welcome-banner h1 { font-size: 28px; }
-  .messaging-layout { display: block; padding: 0; }
-  .messaging-layout > aside { border-right: 0; border-bottom: 1px solid #eee8f4; padding: 20px; }
-  .messaging-layout aside h2 { margin-bottom: 12px; }
-  .message-placeholder { min-height: 350px; padding: 30px 20px 20px; }
   .empty-state { padding: 45px 20px; }
   .empty-state h2 { font-size: 21px; }
   .filter-summary a { margin-left: 0; }

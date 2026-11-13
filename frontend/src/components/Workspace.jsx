@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, readSession } from '../api'
+import CandidatesPage from './CandidatesPage'
 
 const labels = {
   kullanici_adi: 'Kullanıcı adı', eposta: 'E-posta', sifre: 'Şifre', ad: 'Ad', soyad: 'Soyad', yas: 'Yaş',
@@ -13,7 +14,7 @@ const labels = {
 const links = [
   ['panel', '⌂', 'Genel bakış'], ['profil', '○', 'Profilim'], ['anket', '☷', 'Yaşam alışkanlıkları'],
   ['filtreler', '⌕', 'Konum ve bütçe'], ['adaylar', '♧', 'Ev arkadaşı adayları'],
-  ['uyum', '✦', 'Uyumluluk sonuçları'], ['mesajlar', '◌', 'Mesajlar'],
+  ['uyum', '✦', 'Uyumluluk sonuçları'], ['mesajlar', '◌', 'Mesajlarım'],
 ]
 const emptyProfile = {
   ad: '', soyad: '', yas: '', sehir: '', ilce: '', meslek: '', hakkimda: '', kullanim_amaci: 'ev_ariyorum',
@@ -250,21 +251,6 @@ function EmptyState({ icon, title, text, action, href }) {
   return <section className="surface empty-state"><span className="empty-icon">{icon}</span><h2>{title}</h2><p>{text}</p>{action && <a className="primary-button" href={href}>{action}</a>}</section>
 }
 
-function Upcoming({ page, profile }) {
-  const budget = profile?.kira_butcesi_min !== null && profile?.kira_butcesi_min !== undefined && profile?.kira_butcesi_max !== null
-    ? `${Number(profile.kira_butcesi_min).toLocaleString('tr-TR')} – ${Number(profile.kira_butcesi_max).toLocaleString('tr-TR')} TL` : 'Bütçe belirlenmedi'
-  if (page === 'mesajlar') return <>
-    <div className="page-heading"><span className="eyebrow">BİR MERHABA İLE BAŞLAR</span><h1>Mesajların</h1><p>Güzel bir ev arkadaşlığının ilk sohbeti burada başlayacak.</p></div>
-    <div className="messaging-layout surface"><aside><h2>Sohbetler <span className="pill">Yakında</span></h2><p>Sohbetler henüz yüklenemiyor.</p><span className="muted">Mesajlaşma bağlantısı bekleniyor.</span></aside><div className="message-placeholder"><span className="empty-icon">◌</span><h2>Sohbet alanın hazır.</h2><p>Mesajlaşma servisi henüz mevcut değil. Şu anda mesaj gönderilemez veya alınamaz.</p><div className="message-compose"><input aria-label="Mesaj" placeholder="Mesajlaşma henüz kullanıma açık değil" disabled /><button disabled aria-label="Mesaj gönder">↑</button></div></div></div>
-  </>
-  return <>
-    <div className="page-heading"><span className="eyebrow">{page === 'uyum' ? 'BİRLİKTE YAŞAMIN UYUMU' : 'YENİ BİR EV ARKADAŞLIĞI'}</span><h1>{page === 'uyum' ? 'Uyumluluk sonuçların' : 'Ev arkadaşı adayların'}</h1><p>{page === 'uyum' ? 'Yaşam tarzına dair ortak noktalar, tek bir yerde.' : 'Aynı şehir, ortak beklentiler ve yeni bir başlangıç.'}</p></div>
-    <div className="filter-summary"><span>⌕ {profile?.aranan_sehir || 'Konum belirlenmedi'}{profile?.aranan_ilceler?.filter(Boolean).length ? ` · ${profile.aranan_ilceler.filter(Boolean).join(', ')}` : ''}</span><span>₺ {budget}</span><a href="#/filtreler">Tercihleri düzenle ↗</a></div>
-    <EmptyState icon={page === 'uyum' ? '✦' : '♧'} title={page === 'uyum' ? 'Uyum sonuçları için bağlantı bekleniyor.' : 'Aday önerileri henüz kullanıma açık değil.'} text={page === 'uyum' ? 'Mevcut AI sistemi henüz uygulama API’sine bağlı değil. Gerçek bir sonuç gelmeden uyum yüzdesi gösterilmez.' : 'Aday listeleme ve filtreleme için sunucu desteği henüz yok. Profil ve arama tercihlerini şimdiden kaydedebilirsin.'} action="Profilime dön →" href="#/profil" />
-    {page === 'uyum' && <div className="compatibility-grid">{[['⌕', 'Konum ve bütçe', 'Önce aynı konum ve kesişen bütçe aralığı değerlendirilir.'], ['☷', 'Yaşam alışkanlıkları', 'Yaş, sigara, temizlik, gürültü toleransı ve evcil hayvan kabulü karşılaştırılır.'], ['✦', 'Skor ve açıklamalar', 'Servis bağlandığında sonuç ve açıklamaları burada görebileceksin.']].map(([icon, title, text]) => <article className="surface" key={title}><span className="feature-icon">{icon}</span><h3>{title}</h3><p>{text}</p></article>)}</div>}
-  </>
-}
-
 export default function Workspace({ page, session, onSession, onLogout }) {
   if (page === 'giris' || page === 'kayit') {
     if (session.authenticated) return <main className="workspace-content"><EmptyState icon="✓" title="Oturumun açık." text="Profiline ve tercihlerine hesabından ulaşabilirsin." action="Hesabıma git →" href="#/panel" /></main>
@@ -273,11 +259,11 @@ export default function Workspace({ page, session, onSession, onLogout }) {
   if (session.loading) return <main className="workspace-content"><div className="surface empty-state" role="status">Oturumun kontrol ediliyor…</div></main>
   if (!session.authenticated) return <main className="workspace-content"><EmptyState icon="○" title={session.offline ? 'Sunucu bağlantısı bekleniyor.' : 'Yolculuğuna giriş yap.'} text={session.offline ? 'Uygulama sunucusuna şu anda ulaşılamıyor. Bağlantı sağlandığında tekrar deneyebilirsin.' : 'Profilini ve tercihlerini görüntülemek için hesabına giriş yapmalısın.'} action="Giriş yap →" href="#/giris" /></main>
   return <div className="workspace-layout">
-    <aside className="workspace-sidebar"><div className="sidebar-caption">KİŞİSEL ALANIN</div><nav aria-label="Hesap menüsü">{links.map(([id, icon, text]) => <a key={id} href={`#/${id}`} className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined}><span aria-hidden="true">{icon}</span>{text}{['adaylar', 'uyum', 'mesajlar'].includes(id) && <span className="soon-dot" title="Sunucu desteği bekleniyor" />}</a>)}</nav><div className="sidebar-note"><span>✦</span><strong>Önce uyum, sonra adres.</strong><p>Profilin, seni anlatan en iyi başlangıç.</p></div><button className="logout-button" onClick={onLogout}>↪ Oturumu kapat</button></aside>
+    <aside className="workspace-sidebar"><div className="sidebar-caption">KİŞİSEL ALANIN</div><nav aria-label="Hesap menüsü">{links.map(([id, icon, text]) => <a key={id} href={`#/${id}`} className={page === id ? 'active' : ''} aria-current={page === id ? 'page' : undefined}><span aria-hidden="true">{icon}</span>{text}</a>)}</nav><div className="sidebar-note"><span>✦</span><strong>Önce uyum, sonra adres.</strong><p>Profilin, seni anlatan en iyi başlangıç.</p></div><button className="logout-button" onClick={onLogout}>↪ Oturumu kapat</button></aside>
     <main className="workspace-content">
       {page === 'panel' && <Overview session={session} />}
       {['profil', 'anket', 'filtreler'].includes(page) && <ProfileForm section={page} profile={session.profile} onProfile={(profile) => onSession({ ...session, profile })} />}
-      {['adaylar', 'uyum', 'mesajlar'].includes(page) && <Upcoming page={page} profile={session.profile} />}
+      {['adaylar', 'uyum'].includes(page) && <CandidatesPage analysis={page === 'uyum'} hasProfile={Boolean(session.profile)} />}
     </main>
   </div>
 }

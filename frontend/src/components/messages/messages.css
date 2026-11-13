@@ -1,0 +1,49 @@
+.messages-shell { max-width: 1160px; margin: 0 auto; padding: 12px 32px 64px; }
+.messages-shell .page-heading { margin-bottom: 16px; }
+.messages-demo { margin: 0 0 22px; padding: 13px 16px; border: 1px solid #ddd4f5; border-radius: 12px; background: #f0ecfb; color: #594889; font-size: 13px; line-height: 1.7; }
+.messages-panel { display: grid; grid-template-columns: minmax(220px, 285px) minmax(0, 1fr); min-height: 460px; border: 1px solid #ede7f3; border-radius: 20px; background: #fff; }
+.messages-sidebar { min-width: 0; padding: 22px 16px; border-right: 1px solid #ede7f3; }
+.messages-sidebar h2 { margin: 0 8px 16px; font-size: 16px; }
+.messages-sidebar nav { display: grid; gap: 6px; }
+.messages-sidebar a { display: flex; align-items: center; gap: 11px; min-width: 0; padding: 10px; border-radius: 12px; }
+.messages-sidebar a:hover { background: #f8f5fc; }
+.messages-sidebar a[aria-current='page'] { background: #eee9ff; }
+.messages-avatar { display: grid; place-items: center; flex: 0 0 36px; width: 36px; height: 36px; border-radius: 50%; background: #eae2fb; color: #5d47b8; font-weight: 700; }
+.messages-thread-preview { display: grid; gap: 4px; min-width: 0; }
+.messages-thread-preview strong { font-size: 13px; }
+.messages-thread-preview span, .messages-thread-preview small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #655b75; font-size: 12px; }
+.messages-thread-preview small { color: #71687d; }
+.messages-conversation { display: grid; grid-template-rows: auto minmax(230px, 1fr) auto; min-width: 0; }
+.messages-thread-header { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 18px 24px; border-bottom: 1px solid #ede7f3; }
+.messages-thread-header h2 { margin: 0 0 4px; font-size: 16px; }
+.messages-thread-header a { color: #5c47c9; font-size: 13px; overflow-wrap: anywhere; }
+.messages-thread-header a:hover { text-decoration: underline; }
+.messages-history { min-height: 230px; max-height: min(50vh, 500px); padding: 20px 24px; overflow-y: auto; background: #fcfafc; }
+.messages-history ol { display: flex; flex-direction: column; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.messages-history li { max-width: min(82%, 540px); }
+.messages-history li p { margin: 5px 0 0; padding: 10px 13px; border-radius: 13px; line-height: 1.55; font-size: 14px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.message-incoming { align-self: flex-start; }
+.message-incoming p { background: #f0eaf7; }
+.message-outgoing { align-self: flex-end; }
+.message-outgoing p { background: #5b47c5; color: #fff; }
+.messages-meta { display: flex; flex-wrap: wrap; gap: 5px 9px; color: #655b75; font-size: 11px; }
+.message-outgoing .messages-meta { justify-content: flex-end; }
+.messages-empty, .messages-missing p { color: #71687d; font-size: 14px; }
+.messages-missing { align-self: center; padding: 24px; text-align: center; }
+.messages-compose { display: grid; gap: 8px; padding: 16px 24px; border-top: 1px solid #ede7f3; }
+.messages-compose label { color: #443c54; font-size: 13px; font-weight: 700; }
+.messages-compose > div { display: flex; align-items: flex-end; gap: 10px; }
+.messages-compose textarea { flex: 1; min-width: 0; padding: 10px 12px; resize: vertical; border: 1px solid #dbd5e5; border-radius: 11px; background: #fdfcfe; color: #30283f; }
+.messages-compose button { flex-shrink: 0; padding: 12px 15px; gap: 8px; }
+.messages-list-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.messages-refresh { padding: 6px 8px; border: 0; border-radius: 8px; background: #f0ecfb; color: #53419b; font-size: 12px; }
+.messages-thread-header .messages-refresh { margin-left: auto; flex-shrink: 0; }
+.messages-compose .notice { margin: 0; }
+@media (max-width: 720px) {
+  .messages-shell { padding: 10px 16px 42px; }
+  .messages-panel { grid-template-columns: minmax(0, 1fr); }
+  .messages-sidebar { padding: 15px 12px; border-right: 0; border-bottom: 1px solid #ede7f3; }
+  .messages-sidebar h2 { margin-bottom: 9px; }
+  .messages-sidebar nav { max-height: 168px; overflow-y: auto; padding: 4px; }
+  .messages-thread-header, .messages-history, .messages-compose { padding-left: 14px; padding-right: 14px; }
+}
