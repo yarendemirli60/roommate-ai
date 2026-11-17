@@ -7,6 +7,20 @@ export class ApiError extends Error {
   }
 }
 
+const sessionUserKey = 'roommate-session-user-v1'
+
+function restoreSessionUser(profile, user) {
+  try {
+    if (user) {
+      sessionStorage.setItem(sessionUserKey, JSON.stringify({ profileId: profile.id, user }))
+    } else {
+      const saved = JSON.parse(sessionStorage.getItem(sessionUserKey))
+      if (saved?.profileId === profile.id) return saved.user
+    }
+  } catch { /* Storage may be unavailable. */ }
+  return user
+}
+
 function csrfToken() {
   const item = document.cookie.split('; ').find((part) => part.startsWith('csrftoken='))
   return item ? decodeURIComponent(item.slice('csrftoken='.length)) : ''
@@ -22,7 +36,7 @@ async function prepareCsrf() {
   }
 }
 
-async function request(path, method = 'GET', body) {
+async function request(path, method = 'GET', body, { errorField } = {}) {
   try {
     if (method !== 'GET') await prepareCsrf()
     const response = await fetch(`/api/${path}`, {
@@ -44,7 +58,9 @@ async function request(path, method = 'GET', body) {
         : response.status === 403
           ? 'Oturumunuz geçerli değil veya güvenlik doğrulaması başarısız. Yeniden giriş yapın.'
           : data?.mesaj || data?.detail || 'Bilgilerinizi kontrol ederek tekrar deneyin.'
-      throw new ApiError(message, response.status, data || {})
+      const apiMessage = errorField && (data?.mesaj || data?.detail || data?.[errorField])
+      const detail = Array.isArray(apiMessage) ? apiMessage.join(' ') : apiMessage
+      throw new ApiError(typeof detail === 'string' && detail ? detail : message, response.status, data || {})
     }
     if (!isJson) throw new ApiError('Sunucudan beklenen yanıt alınamadı. API bağlantısını kontrol edin.', 502)
     return data
@@ -57,15 +73,29 @@ async function request(path, method = 'GET', body) {
 export const api = {
   register: (data) => request('kayit/', 'POST', data),
   login: (data) => request('giris/', 'POST', data),
-  logout: () => request('cikis/', 'POST', {}),
+  logout: async () => {
+    const result = await request('cikis/', 'POST', {})
+    try { sessionStorage.removeItem(sessionUserKey) } catch { /* Storage may be unavailable. */ }
+    return result
+  },
   getProfile: () => request('profil/'),
   createProfile: (data) => request('profil/olustur/', 'POST', data),
   updateProfile: (data) => request('profil/', 'PATCH', data),
+  getCandidates: () => request('profil/adaylar/'),
+  getConversations: () => request('mesajlar/'),
+  getMessages: (profileId) => request(`mesajlar/${profileId}/`),
+  sendMessage: (profileId, text) => request(`mesajlar/${profileId}/`, 'POST', {
+    icerik: text,
+  }, { errorField: 'icerik' }),
+  calculateCompatibility: (profileId) => request('profil/uyum/', 'POST', {
+    aday_profil_id: profileId,
+  }, { errorField: 'aday_profil_id' }),
 }
 
 export async function readSession(user = null) {
   try {
-    return { authenticated: true, profile: await api.getProfile(), user, loading: false, offline: false }
+    const profile = await api.getProfile()
+    return { authenticated: true, profile, user: restoreSessionUser(profile, user), loading: false, offline: false }
   } catch (error) {
     if (error.status === 404) return { authenticated: true, profile: null, user, loading: false, offline: false }
     if (error.status === 401 || error.status === 403) return { authenticated: false, profile: null, user: null, loading: false, offline: false }
