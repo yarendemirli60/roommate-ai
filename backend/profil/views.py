@@ -1,5 +1,6 @@
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
 
 from .models import Profil
 from .serializers import ProfilSerializer, AdaySerializer
@@ -39,18 +40,34 @@ class ProfilDetay(generics.RetrieveUpdateAPIView):
             kullanici=self.request.user,
         )
 
-class AdayListesi(generics.ListAPIView):
+class AdaySayfalama(PageNumberPagination):
+    page_size = 20
+
+
+class AdayProfilleri:
     serializer_class = AdaySerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = None
 
     def get_queryset(self):
         return (
-            Profil.objects
-            .filter(kullanici__is_active=True)
+            Profil.objects.filter(kullanici__is_active=True)
             .exclude(kullanici=self.request.user)
-            .order_by("-olusturulma_tarihi")
+            .order_by("-olusturulma_tarihi", "-pk")
         )
+
+
+class AdayListesi(AdayProfilleri, generics.ListAPIView):
+    pagination_class = AdaySayfalama
+
+    def paginate_queryset(self, queryset):
+        # Preserve the array response expected by the existing React screens.
+        if "page" in self.request.query_params:
+            return super().paginate_queryset(queryset)
+        return None
+
+
+class AdayDetayi(AdayProfilleri, generics.RetrieveAPIView):
+    pass
 
 class UyumIstegiSerializer(serializers.Serializer):
     aday_profil_id = serializers.IntegerField(min_value=1)

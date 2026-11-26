@@ -16,7 +16,7 @@ function formatBudget(min, max) {
   return null
 }
 
-function CandidateCard({ candidate }) {
+function CandidateCard({ candidate, detail = false }) {
   const [calculation, setCalculation] = useState({ pending: false, result: null, error: '' })
   const budget = formatBudget(candidate.kira_butcesi_min, candidate.kira_butcesi_max)
   const location = [candidate.ilce, candidate.sehir].filter(Boolean).join(', ')
@@ -40,7 +40,7 @@ function CandidateCard({ candidate }) {
     <header>
       <div className="avatar candidate-avatar" aria-hidden="true">{candidate.ad?.trim().slice(0, 1).toLocaleUpperCase('tr-TR') || '?'}</div>
       <div>
-        <h2 id={`candidate-${candidate.id}`}>{candidate.ad || 'Ev arkadaşı adayı'}</h2>
+        <h2 id={`candidate-${candidate.id}`}>{detail ? candidate.ad : <a className="inline-link" href={`#/adaylar/${candidate.id}`}>{candidate.ad || 'Ev arkadaşı adayı'}</a>}</h2>
         {details.length > 0 && <p>{details.join(' · ')}</p>}
       </div>
     </header>
@@ -64,30 +64,58 @@ function CandidateCard({ candidate }) {
   </article>
 }
 
+export function CandidateDetail({ id }) {
+  const [state, setState] = useState({ candidate: null, error: null })
+  const [attempt, setAttempt] = useState(0)
+  useEffect(() => {
+    let active = true
+    api.getCandidate(id).then(
+      (candidate) => { if (active) setState({ candidate, error: null }) },
+      (error) => { if (active) setState({ candidate: null, error }) },
+    )
+    return () => { active = false }
+  }, [id, attempt])
+  return <>
+    <a className="back-link" href="#/adaylar">← Adaylara dön</a>
+    <header className="page-heading"><h1>Aday profili</h1></header>
+    {state.candidate ? <CandidateCard candidate={state.candidate} detail /> : state.error ?
+      <div className="surface" role="alert">
+        <p>{state.error.status === 404 ? 'Aday bulunamadı.' : state.error.message}</p>
+        {state.error.status !== 404 && <button type="button" className="primary-button" onClick={() => { setState({ candidate: null, error: null }); setAttempt(attempt + 1) }}>Yeniden dene</button>}
+      </div> : <p role="status">Aday profili yükleniyor…</p>}
+  </>
+}
+
 export default function CandidatesPage({ analysis, hasProfile }) {
   const [attempt, setAttempt] = useState(0)
+  const [page, setPage] = useState(1)
   const [list, setList] = useState({ candidates: null, error: null })
 
   useEffect(() => {
     let active = true
     async function load() {
       try {
-        const candidates = await api.getCandidates()
+        const { results: candidates, next, previous } = await api.getCandidates(page)
         if (!Array.isArray(candidates) || !candidates.every((candidate) => Number.isInteger(candidate?.id) && candidate.id > 0)) {
           throw new Error('Sunucudan geçerli bir aday listesi alınamadı.')
         }
-        if (active) setList({ candidates, error: null })
+        if (active) setList({ candidates, next, previous, error: null })
       } catch (error) {
         if (active) setList({ candidates: null, error })
       }
     }
     load()
     return () => { active = false }
-  }, [attempt])
+  }, [attempt, page])
 
   function retry() {
     setList({ candidates: null, error: null })
     setAttempt((previous) => previous + 1)
+  }
+
+  function goToPage(nextPage) {
+    setList({ candidates: null, error: null })
+    setPage(nextPage)
   }
 
   return <>
@@ -105,5 +133,9 @@ export default function CandidatesPage({ analysis, hasProfile }) {
     </div> : list.candidates === null ? <div className="surface" role="status">Adaylar yükleniyor…</div>
       : list.candidates.length === 0 ? <div className="surface empty-state"><h2>Henüz aday bulunmuyor</h2></div>
         : <div className="candidate-grid">{list.candidates.map((candidate) => <CandidateCard key={candidate.id} candidate={candidate} />)}</div>}
+    {(list.previous || list.next) && <nav className="listing-pagination" aria-label="Aday sayfaları">
+      {list.previous && <button type="button" className="text-button" onClick={() => goToPage(page - 1)}>Önceki sayfa</button>}
+      {list.next && <button type="button" className="text-button" onClick={() => goToPage(page + 1)}>Sonraki sayfa</button>}
+    </nav>}
   </>
 }

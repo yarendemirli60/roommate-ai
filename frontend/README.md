@@ -1,21 +1,7 @@
 # RoomMate AI frontend
 
-Mevcut tasarım, logo ve React/Vite yapısı korunarak geliştirildi. Yeni paket eklenmedi. Uzak backend henüz bütçe aralığı ve sigara kategorisi model/migration alanlarını içermiyor; tam entegrasyon için Yaren'in bu kaynakları getirmesi gerekiyor.
+React/Vite arayüzü, Django REST API’yi oturum çerezi ve CSRF ile kullanır. Başlatma, PostgreSQL kurulumu ve Google Maps yapılandırması için proje kökündeki [README](../README.md) dosyasına bakın.
 
-## Başlatma
+Ev ve oda ilanları `#/ilanlar` adresinde listelenir. `#/ilanlar/yeni` fotoğraflı ilan yayınlar ve `#/ilanlar/{id}` kalıcı kaydı açar. İlanlar ve adaylar sayfalar hâlinde yüklenir. Konumu olan ilanların işaretleri, Google Maps yapılandırıldığında arama sonuçlarıyla birlikte güncellenir.
 
-Proje kökünden `powershell -ExecutionPolicy Bypass -File .\start.ps1`; uygulama http://127.0.0.1:5173 adresinde açılır. Backend, kök .venv veya mevcut backend/.venv ortamında çalışır. Yerel sırlar proje kökündeki .env içinden yüklenir. Kurulum ayrıntıları ../README.md, backend sürüm farkı ../database/BACKEND_UYUM_NOTU.md içindedir.
-
-Ayrı terminallerde çalıştırmak için proje kökünden `.\database\run-backend.ps1`; frontend klasöründen `npm.cmd run dev` kullanılabilir.
-
-## Ekranlar
-
-Ana sayfa; #/kayit; #/giris; #/panel; #/profil; #/anket; #/filtreler; #/adaylar; #/uyum; #/mesajlar.
-
-Kayıt/giriş/çıkış ve profil/anket/arama tercihi kaydı mevcut Django API'lerine bağlıdır. Konum ve bütçe ekranı tercih kaydeder; gerçek aday filtreleme endpoint'i yoktur. Aday/AI/mesajlaşma ekranları sunucu desteği beklediğini belirtir. Sahte aday ve skor gösterilmez; mesaj gönderme kapalıdır.
-
-## Bağlantı
-
-src/api.js çerez tabanlı session ve CSRF kullanır. Yeni backend API'si eklenmedi. vite.config.js, göreli /api isteklerini yalnız yerel 8000 portuna aktarır; CSRF başlangıcını mevcut admin/login GET sayfasından sağlar. Geliştirme 5173, preview 4173 portundadır. Proxy üretim dağıtımı yerine geçmez.
-
-`npm.cmd run lint` ve `npm.cmd run build` geçti. `npm.cmd run preview` derlenmiş frontend'i yerel API proxy'siyle açar; backend ayrıca açık olmalıdır.
+`npm.cmd run lint` kod denetimini, `npm.cmd run build` derlemeyi çalıştırır. Yerel Vite sunucusu `/api` isteklerini Django’ya aktarır. Derlenmiş uygulama için de aynı kaynakta `/api` yönlendirmesi gerekir.

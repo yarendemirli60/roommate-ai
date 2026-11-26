@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { api, readSession } from '../api'
-import CandidatesPage from './CandidatesPage'
+import CandidatesPage, { CandidateDetail } from './CandidatesPage'
+import { locationCode } from '../data/listings'
 
 const labels = {
   kullanici_adi: 'Kullanıcı adı', eposta: 'E-posta', sifre: 'Şifre', ad: 'Ad', soyad: 'Soyad', yas: 'Yaş',
@@ -150,6 +151,16 @@ function Habits({ data, change, required = true }) {
   </>
 }
 
+function savedListingSearch(profile) {
+  const params = new URLSearchParams()
+  const city = locationCode(profile?.aranan_sehir || '')
+  if (city) params.set('sehir', city)
+  for (const district of new Set((profile?.aranan_ilceler || []).map(locationCode).filter(Boolean))) params.append('ilce', district)
+  if (profile?.kira_butcesi_min != null) params.set('min_kira', profile.kira_butcesi_min)
+  if (profile?.kira_butcesi_max != null) params.set('max_kira', profile.kira_butcesi_max)
+  return `#/ilanlar${params.size ? `?${params}` : ''}`
+}
+
 function ProfileForm({ section, profile, onProfile }) {
   const [data, setData] = useState(() => {
     let draft = {}
@@ -229,9 +240,9 @@ function ProfileForm({ section, profile, onProfile }) {
           </div>
           {data.kullanim_amaci !== 'ev_ariyorum' && <><div className="notice notice-soft">Bu arayış türünde yaşam alışkanlıklarını ve tercihlerini de doldurmalısın.</div><Habits data={data} change={change} /></>}
         </>}
-        {section === 'anket' && <><Habits data={data} change={change} /><div className="notice notice-soft">Tercihlerin profilinde saklanır. AI sonuçları henüz kullanıma açık değil; bu form uyum skoru hesaplamaz.</div></>}
+        {section === 'anket' && <><Habits data={data} change={change} /><div className="notice notice-soft">Tercihlerin uyum hesabında kullanılır. Bir aday seçerek uyum skorunu görebilirsin.</div></>}
         {section === 'filtreler' && <>
-          <div className="section-title"><span>⌕</span><div><h2>Arama alanını belirle</h2><p>Bu tercihler profilinde saklanır. Aday filtreleme servisi henüz hazır değil.</p></div></div>
+          <div className="section-title"><span>⌕</span><div><h2>Arama alanını belirle</h2><p>Bu tercihleri kaydedip ilanları aynı konum ve bütçeyle ara.</p></div></div>
           <div className="form-grid">
             <Field name="aranan_sehir" value={data.aranan_sehir} onChange={change} required maxLength={50} placeholder="Örn. İstanbul" />
             <Field name="aranan_ilceler" value={data.aranan_ilceler.join(', ')} onChange={(_, value) => change('aranan_ilceler', value.split(',').map((item) => item.trimStart()))} hint="Birden fazla ilçe için virgül kullan. Örn. Kadıköy, Üsküdar" placeholder="Örn. Kadıköy, Üsküdar" />
@@ -240,6 +251,7 @@ function ProfileForm({ section, profile, onProfile }) {
             <Field name="tasinma_tarihi" value={data.tasinma_tarihi} onChange={change} type="date" />
           </div>
           <div className="budget-note"><span>₺</span><p>Bütçe, aylık ve kişi başı kira tutarıdır. Alt sınır, üst sınırı aşamaz.</p></div>
+          {!dirty && profile && <a className="inline-link" href={savedListingSearch(profile)}>Bu tercihlerle ilan ara</a>}
         </>}
         <div className="form-footer"><span>{dirty ? 'Kaydedilmemiş değişikliklerin var.' : 'Bilgilerini istediğin zaman güncelleyebilirsin.'}</span><button type="submit" className="primary-button">{busy ? 'Kaydediliyor…' : profile ? 'Değişiklikleri kaydet ✓' : 'Profilimi oluştur ↗'}</button></div>
       </fieldset>
@@ -251,7 +263,7 @@ function EmptyState({ icon, title, text, action, href }) {
   return <section className="surface empty-state"><span className="empty-icon">{icon}</span><h2>{title}</h2><p>{text}</p>{action && <a className="primary-button" href={href}>{action}</a>}</section>
 }
 
-export default function Workspace({ page, session, onSession, onLogout }) {
+export default function Workspace({ page, candidateId, session, onSession, onLogout }) {
   if (page === 'giris' || page === 'kayit') {
     if (session.authenticated) return <main className="workspace-content"><EmptyState icon="✓" title="Oturumun açık." text="Profiline ve tercihlerine hesabından ulaşabilirsin." action="Hesabıma git →" href="#/panel" /></main>
     return <Auth key={page} mode={page} onSession={onSession} />
@@ -263,7 +275,7 @@ export default function Workspace({ page, session, onSession, onLogout }) {
     <main className="workspace-content">
       {page === 'panel' && <Overview session={session} />}
       {['profil', 'anket', 'filtreler'].includes(page) && <ProfileForm section={page} profile={session.profile} onProfile={(profile) => onSession({ ...session, profile })} />}
-      {['adaylar', 'uyum'].includes(page) && <CandidatesPage analysis={page === 'uyum'} hasProfile={Boolean(session.profile)} />}
+      {candidateId ? <CandidateDetail key={candidateId} id={candidateId} /> : ['adaylar', 'uyum'].includes(page) && <CandidatesPage analysis={page === 'uyum'} hasProfile={Boolean(session.profile)} />}
     </main>
   </div>
 }

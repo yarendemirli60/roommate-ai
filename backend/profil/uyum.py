@@ -17,6 +17,7 @@ GURULTU_ETIKETLERI = {
 EVCIL_HAYVAN_ETIKETLERI = {
     "evet": "Yes",
     "hayir": "No",
+    "fark_etmez": "Either",
 }
 
 
@@ -32,7 +33,7 @@ def profili_tahmin_girdisine_cevir(profil):
 
     if profil.evcil_hayvan_kabulu not in EVCIL_HAYVAN_ETIKETLERI:
         raise ValueError(
-            "Uyum hesabı için evcil hayvan tercihi Evet veya Hayır olmalı."
+            "Uyum hesabı için evcil hayvan tercihini belirt."
         )
 
     return {

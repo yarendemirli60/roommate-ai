@@ -5,11 +5,7 @@
 - **Beyhan:** frontend, veritabanı şeması, bağlantı/kurulum betikleri ve belgeler.
 - **Yaren:** `backend/` ve `ai/` kaynakları, API'ler ve eşleştirme algoritması.
 
-## Önce backend sürümünü kontrol edin
-
-Bu frontend/veritabanı branch'i hazırlanırken ortak depodaki backend, çalışan yerel sunum sürümündeki üç profil alanını ve mevcut `profil.0002` migration dosyasını henüz içermiyordu. Backend ve AI kaynaklarına bu hazırlıkta dokunulmadı.
-
-**Tam yeniden kurulum için Yaren önce [backend uyum notunu](database/BACKEND_UYUM_NOTU.md) incelemeli ve kendi model/migration çalışmasını getirmelidir.** Sadece SQL sütunları oluşturmak eksik ORM/API alanlarını tamamlamaz. `start.ps1` kaynak sözleşmesi eksikse açıklayıcı hata ile durur. Bu nedenle bu branch'in tek başına, mevcut uzak backend sürümüyle tüm bütçe/sigara alanlarını çalıştırdığı iddia edilmez.
+Proje kayıt ve oturum yönetimi, yaşam profili, aday listesi, modelle uyum hesabı, özel mesajlaşma ve fotoğraflı kiralık ev veya oda ilanlarını içerir.
 
 ## Gereksinimler
 
@@ -68,7 +64,7 @@ py -3.13 -m venv .venv
 npm.cmd --prefix frontend ci
 ```
 
-`.venv` zaten varsa oluşturma adımını atlayın. Mevcut `backend/.venv` ortamı da başlatma betikleri tarafından alternatif olarak desteklenir; kök `.venv` önceliklidir. Hesap/profil için denenmiş paket sürümleri database/requirements-runtime.txt içinde sabittir. AI paketleri bu listenin kapsamı dışındadır; bunları Yaren kendi çalışmasıyla sürümlemelidir.
+`.venv` zaten varsa oluşturma adımını atlayın. Mevcut `backend/.venv` ortamı da başlatma betikleri tarafından alternatif olarak desteklenir; kök `.venv` önceliklidir. Django, fotoğraf doğrulama ve uyum modeli bağımlılıkları `database/requirements-runtime.txt` içinde sabitlenmiştir.
 
 ## 4. Mevcut Django migration'larını uygulayın
 
@@ -82,9 +78,9 @@ npm.cmd --prefix frontend ci
 
 İlk komut eksik backend sözleşmesi bildiriyorsa [Yaren'e notu](database/BACKEND_UYUM_NOTU.md) çözmeden tam uygulama kurulumuna devam etmeyin. Dosya eksikliği veritabanını sıfırlayarak giderilmez.
 
-Django `auth_*`, `django_*` ve `profil_profil` tablolarını kendi migration'larıyla yönetir. Beklenen profil migration'ları `0001_initial` ve çalışan yerel sürümün `0002_profil_ai_uyumluluk_alanlari` dosyasıdır. Mevcut tablolar elle kopyalanmaz; `--fake`, `flush`, `DROP DATABASE`, eski migration silme/değiştirme kullanılmaz. `manage.ps1`, .env değerlerini sürece aktarır; backend kendi başına .env okumaz.
+Django hesap, profil, mesaj ve ilan tablolarını kendi migration’larıyla yönetir. Beklenen profil migration'ları `0001_initial` ve çalışan yerel sürümün `0002_profil_ai_uyumluluk_alanlari` dosyasıdır. Mevcut tablolar elle kopyalanmaz; `--fake`, `flush`, `DROP DATABASE`, eski migration silme/değiştirme kullanılmaz. `manage.ps1`, .env değerlerini sürece aktarır; backend kendi başına .env okumaz.
 
-## 5. Ek veritabanı şemasını uygulayın
+## 5. Ek veritabanı şemasını isteğe bağlı inceleyin
 
 Migration'lar tamamlandıktan sonra uygulama kullanıcısıyla Django dbshell açın. psql PATH üzerinde olmalı:
 
@@ -103,7 +99,7 @@ psql içinde (dbshell çalışma dizini backend olduğundan yol `../database/`):
 
 İlk dosya `roommate_match`, `roommate_conversation`, `roommate_message` tablolarını PK/FK/UNIQUE/CHECK kurallarıyla ekler; var olan tabloları silmez. İkinci dosya salt okunur şema doğrulamasıdır. Ek şema CREATE IF NOT EXISTS kullanır; önceden farklı tasarımla oluşturulmuş aynı adlı tabloları otomatik düzeltmez. Bu durumda [veri sözlüğünü](database/database_documentation.md) inceleyin.
 
-Bu üç tabloya henüz backend API'si bağlı değildir; tablo oluşturmak AI veya mesajlaşmayı uygulamada etkinleştirmez.
+Mevcut mesajlaşma API’si Django’nun `mesajlar_mesaj` tablosunu kullanır. Bu SQL taslağı uygulamayı çalıştırmak için gerekli değildir.
 
 ## 6. Backend ve frontend'i başlatın
 
@@ -126,7 +122,24 @@ npm.cmd --prefix frontend run dev
 
 Bu alternatif komutlar sözleşme kontrolünü otomatik çalıştırmaz; 4. adımdaki kontrol önceden geçmelidir. Terminallerde Ctrl+C ile kapatabilirsiniz. Farklı hostlar arasında geçiş çerez oturumunu ayırır; sunum sırasında aynı 127.0.0.1 adresini kullanın.
 
-Vite yerel `/api/` isteklerini mevcut Django API'sine aktarır. CSRF çerezi mevcut admin/login GET sayfasından alınır; Django güvenlik kontrolleri kapatılmaz. Üretim yayını için bu geliştirme proxy'si yeterli değildir; backend sahibiyle HTTPS/hosting düzeni ayrıca yapılmalıdır.
+Vite yerel `/api/` isteklerini Django API’sine aktarır. CSRF çerezi `/api/session-csrf/` üzerinden alınır. Üretim yayını için bu geliştirme proxy'si yeterli değildir; backend sahibiyle HTTPS/hosting düzeni ayrıca yapılmalıdır.
+
+
+## İlan API’si
+
+İlan tablolarını oluşturmak için proje kökünden `.\database\manage.ps1 migrate ilanlar` çalıştırın. Fotoğraf doğrulaması için çalışma zamanı bağımlılıkları arasında Pillow bulunur. İlan uç noktaları Django oturumuyla çalışır. İlan oluşturan istemci CSRF çerezini ve başlığını da göndermelidir.
+
+- `GET /api/ilanlar/` yayındaki ilanları 20’şer döndürür. Yanıtta `count`, `next`, `previous` ve `results` alanları bulunur.
+- Filtreler `sehir`, tekrarlanabilir `ilce`, `min_kira`, `max_kira`, `ilan_turu`, `oda_turu` ve `page` parametreleridir. Örnek URL `/api/ilanlar/?sehir=istanbul&ilce=kadikoy&ilce=uskudar&min_kira=10000&max_kira=25000`.
+- `harita=true` aynı filtreleri uygular ve yalnızca koordinatı bulunan ilanları döndürür. `enlem` ve `boylam` sayı olarak gelir. Liste görünümünde koordinatsız ilanların iki alanı da `null` olabilir.
+- `GET /api/ilanlar/{id}/` ilan detayını ve sıralı fotoğraf bağlantılarını döndürür. Fotoğraf bağlantıları da oturum gerektirir.
+- `POST /api/ilanlar/` bir `multipart/form-data` isteğiyle ilan yayınlar. Alanlar `baslik`, `aciklama`, `ilan_turu` (`ev` veya `oda`), `oda_turu`, `sehir_kodu`, `ilce_kodu`, `aylik_kira`, `esyali` ve `alan_m2` değerleridir. `fotograf_dosyalari` alanı bir ile beş arasında JPEG, PNG veya WebP dosyası için aynı adla tekrarlanır. İsteğe bağlı `enlem` ve `boylam` birlikte gönderilir. Sahip, oturumdan atanır.
+- Konum kodları küçük ASCII harf, rakam ve kısa çizgiyle yazılır. Ev ilanlarında oda kodları `studyo`, `1+1`, `2+1` ve `3+1`. Oda ilanlarında `tek_kisilik` ve `paylasimli` kullanılır.
+- Aday API’si `GET /api/profil/adaylar/{id}/` ile aday detayını, `GET /api/profil/adaylar/?page=1` ile sayfalanmış aday listesini sunar. Parametresiz aday isteği mevcut React ekranları için dizi döndürür.
+
+## Google Maps
+
+İlan haritasını açmak için Google Cloud projesinde Maps JavaScript API’yi etkinleştirin ve tarayıcı anahtarını proje kökündeki `.env` dosyasında `VITE_GOOGLE_MAPS_API_KEY` olarak tanımlayın. Anahtarı Maps JavaScript API ve uygulamanın web adresleriyle sınırlandırın. Üretimde kendi harita kimliğinizi `VITE_GOOGLE_MAPS_MAP_ID` olarak verin. Yerel deneme için varsayılan `DEMO_MAP_ID` kullanılabilir. Vite’ı yeniden başlatın veya üretim derlemesini yenileyin. Anahtar yoksa harita OpenStreetMap ile açılır. Harita yüklenemezse ilan listesi kullanılabilir.
 
 ## Ekranlar ve çalışan kapsam
 
@@ -135,11 +148,12 @@ Vite yerel `/api/` isteklerini mevcut Django API'sine aktarır. CSRF çerezi mev
 | Ana sayfa, kayıt/giriş/çıkış | Mevcut Django hesap API'leriyle çalışır |
 | Profil, yaşam alışkanlıkları | Kendi profilini oluşturma/okuma/güncelleme |
 | Konum ve bütçe | Arama tercihini profile kaydeder; üç yeni alan için yukarıdaki backend uyumu gerekir |
-| Ev arkadaşı adayları | Gerçek aday listeleme/filtreleme endpoint'i bekleniyor |
-| AI uyumluluk sonuçları | AI/API entegrasyonu bekleniyor; sahte skor gösterilmez |
-| Mesajlaşma | Sohbet/mesaj API'si bekleniyor; gönderim kapalı |
+| Ev arkadaşı adayları | Sayfalı aday listesi ve aday detay API’si |
+| AI uyumluluk sonuçları | Eğitilmiş modelden uyum skoru ve açıklamalar |
+| Mesajlaşma | Katılımcıların erişebildiği veritabanına kayıtlı konuşmalar |
+| Ev ve oda ilanları | Kalıcı ilan ve fotoğraf kaydı, konum ve kira filtreleri, detay ve harita |
 
-Backend sözleşmesi uygunken çalışan yerel sistemde tarayıcıdan kayıt, giriş, profil/anket/bütçe kaydı ve sayfa yenilemesi sonrası kalıcılık doğrulandı. Aynı veri bağımsız PostgreSQL bağlantısıyla okundu. Bu doğrulama, henüz güncellenmemiş uzak backend için yapılmış bir test olarak sunulmaz.
+Bir mevcut Django süreci eski kodla çalışıyorsa durdurun ve başlatma komutunu tekrar çalıştırın.
 
 ## Kontroller
 

@@ -116,16 +116,13 @@ function Inbox({ threadId, userId }) {
   const [newRecipient, setNewRecipient] = useState(null)
 
   useEffect(() => {
-    if (!activeId || active || conversations.items === null) return undefined
+    if (!activeId || active) return undefined
     let ignore = false
-    api.getCandidates().then((candidates) => {
-      if (!ignore && Array.isArray(candidates)) {
-        const profile = candidates.find((candidate) => String(candidate.id) === activeId)
-        if (profile) setNewRecipient({ id: activeId, name: profile.ad })
-      }
+    api.getCandidate(activeId).then((profile) => {
+      if (!ignore) setNewRecipient({ id: activeId, name: participantName(profile) })
     }).catch(() => { /* History has its own access and error handling. */ })
     return () => { ignore = true }
-  }, [active, activeId, conversations.items])
+  }, [active, activeId])
 
   const name = active ? participantName(active) : (newRecipient?.id === activeId && newRecipient.name) || 'Yeni konuşma'
 

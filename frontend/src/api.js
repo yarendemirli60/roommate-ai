@@ -29,7 +29,7 @@ function csrfToken() {
 async function prepareCsrf() {
   if (csrfToken()) return
   const response = await fetch('/api/session-csrf/', {
-    credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'text/html' },
+    credentials: 'same-origin', cache: 'no-store', headers: { Accept: 'application/json' },
   })
   if (!response.ok || !csrfToken()) {
     throw new ApiError('Güvenli oturum başlatılamadı. Sunucu bağlantısını kontrol edip tekrar deneyin.', response.status)
@@ -39,16 +39,17 @@ async function prepareCsrf() {
 async function request(path, method = 'GET', body, { errorField } = {}) {
   try {
     if (method !== 'GET') await prepareCsrf()
+    const multipart = body instanceof FormData
     const response = await fetch(`/api/${path}`, {
       method,
       credentials: 'same-origin',
       cache: 'no-store',
       headers: {
         Accept: 'application/json',
-        ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
+        ...(body === undefined || multipart ? {} : { 'Content-Type': 'application/json' }),
         ...(method === 'GET' ? {} : { 'X-CSRFToken': csrfToken() }),
       },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      ...(body === undefined ? {} : { body: multipart ? body : JSON.stringify(body) }),
     })
     const isJson = response.headers.get('content-type')?.includes('application/json')
     const data = isJson ? await response.json() : null
@@ -81,7 +82,11 @@ export const api = {
   getProfile: () => request('profil/'),
   createProfile: (data) => request('profil/olustur/', 'POST', data),
   updateProfile: (data) => request('profil/', 'PATCH', data),
-  getCandidates: () => request('profil/adaylar/'),
+  getCandidates: (page = 1) => request(`profil/adaylar/?page=${page}`),
+  getCandidate: (id) => request(`profil/adaylar/${id}/`),
+  getListings: (query = '') => request(`ilanlar/${query ? `?${query}` : ''}`),
+  getListing: (id) => request(`ilanlar/${id}/`),
+  createListing: (form) => request('ilanlar/', 'POST', form),
   getConversations: () => request('mesajlar/'),
   getMessages: (profileId) => request(`mesajlar/${profileId}/`),
   sendMessage: (profileId, text) => request(`mesajlar/${profileId}/`, 'POST', {
