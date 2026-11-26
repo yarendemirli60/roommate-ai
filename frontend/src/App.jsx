@@ -2,12 +2,10 @@
 import { useEffect, useState } from 'react'
 import { api, readSession } from './api'
 import Workspace from './components/Workspace'
-import MessagesPage from './components/messages/MessagesPage'
 import LiveMessagesPage from './components/messages/LiveMessagesPage'
 import ListingsPage from './components/listings/ListingsPage'
 import ListingDetail from './components/listings/ListingDetail'
 import ListingForm from './components/listings/ListingForm'
-import { demoListings } from './data/demoListings'
 import './App.css'
 import './components/listings/listings.css'
 
@@ -24,8 +22,6 @@ function App() {
   const [page, setPage] = useState(currentPage)
   const [session, setSession] = useState({ authenticated: false, profile: null, user: null, loading: true, offline: false })
   const [notice, setNotice] = useState('')
-  // Demo records live only in React memory; no API or persistent storage writes.
-  const [listings, setListings] = useState(demoListings)
   useEffect(() => {
     const navigate = () => { setPage(currentPage()); setNotice(''); window.scrollTo({ top: 0, behavior: 'instant' }) }
     window.addEventListener('hashchange', navigate)
@@ -45,6 +41,7 @@ function App() {
   }
   const accountHref = session.authenticated ? '#/panel' : '#/kayit'
   const messageRoute = /^mesajlar(?:\/([^/]+))?$/.exec(page)
+  const candidateRoute = /^adaylar\/([1-9]\d*)$/.exec(page)
   return (
     <div className="app">
       <nav className="navbar">
@@ -66,12 +63,15 @@ function App() {
 
       {notice && <div className="global-notice notice notice-error" role="alert">{notice}</div>}
       {session.offline && !messageRoute && <div className="connection-banner" role="status">Sunucu bağlantısı kurulamadı. Hesap işlemleri için uygulama sunucusunun açık olması gerekiyor. <button onClick={() => readSession().then(setSession)}>Yeniden dene ↻</button></div>}
-      {messageRoute ? (/^ornek-[0-9]+$/.test(messageRoute[1] || '')
-        ? <MessagesPage threadId={messageRoute[1]} />
-        : <LiveMessagesPage threadId={messageRoute[1]} session={session} onRetry={() => readSession().then(setSession)} />)
-        : page === 'ilanlar' ? <ListingsPage listings={listings} />
-        : page === 'ilanlar/yeni' ? <ListingForm onCreate={(listing) => { setListings((items) => [listing, ...items]); window.location.hash = `/ilanlar/${listing.id}` }} />
-        : /^ilanlar\/[^/]+$/.test(page) ? <ListingDetail key={page} listing={listings.find((item) => item.id === page.split('/')[1])} />
+      {messageRoute ? <LiveMessagesPage threadId={messageRoute[1]} session={session} onRetry={() => readSession().then(setSession)} />
+        : /^ilanlar(?:\/(?:yeni|[1-9]\d*))?$/.test(page) && !session.authenticated ? <main className="listings-shell">
+          {session.loading ? <p role="status">Oturum kontrol ediliyor…</p> : !session.offline &&
+            <section className="listing-empty"><h1>İlanları görmek için giriş yap</h1><a className="primary-button" href="#/giris">Giriş yap</a></section>}
+        </main>
+        : page === 'ilanlar' ? <ListingsPage />
+        : page === 'ilanlar/yeni' ? <ListingForm onCreate={(id) => { window.location.hash = `/ilanlar/${id}` }} />
+        : /^ilanlar\/[1-9]\d*$/.test(page) ? <ListingDetail key={page} id={page.split('/')[1]} />
+        : candidateRoute ? <Workspace page="adaylar" candidateId={candidateRoute[1]} session={session} onSession={setSession} onLogout={logout} />
         : page ? (validPages.includes(page) ? <Workspace page={page} session={session} onSession={setSession} onLogout={logout} /> : <main className="workspace-content"><section className="surface empty-state"><h1>Bu sayfa bulunamadı.</h1><a className="primary-button" href="#/">Ana sayfaya dön →</a></section></main>) : <main>
         <section className="hero" id="basla">
           <div className="hero-copy">

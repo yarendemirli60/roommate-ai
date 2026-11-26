@@ -36,8 +36,8 @@ def kisi_kontrol(kisi):
     if kisi["gurultu_toleransi"] not in model_paketi["gurultu_eslestirme"]:
         raise ValueError("Geçersiz gürültü toleransı seçeneği.")
 
-    if kisi["evcil_hayvan_kabulu"] not in ["Yes", "No"]:
-        raise ValueError("Evcil hayvan kabulü Yes veya No olmalı.")
+    if kisi["evcil_hayvan_kabulu"] not in ["Yes", "No", "Either"]:
+        raise ValueError("Geçersiz evcil hayvan tercihi.")
 
 def uyum_hesapla(kisi1, kisi2):
     kisi_kontrol(kisi1)
@@ -69,10 +69,21 @@ def uyum_hesapla(kisi1, kisi2):
         )
     }
 
-    tablo = pd.DataFrame([ozellikler])
+    tercih_esnek = "Either" in (
+        kisi1["evcil_hayvan_kabulu"], kisi2["evcil_hayvan_kabulu"]
+    )
+    if tercih_esnek:
+        # The model was trained on binary values. Average its two predictions
+        # when the profile explicitly has no preference.
+        tablo = pd.DataFrame([
+            {**ozellikler, "evcil_hayvan_tercihi_ayni": 0},
+            {**ozellikler, "evcil_hayvan_tercihi_ayni": 1},
+        ])
+    else:
+        tablo = pd.DataFrame([ozellikler])
     tablo = tablo[ozellik_sirasi]
 
-    skor = model.predict(tablo)[0]
+    skor = model.predict(tablo).mean()
 
     aciklamalar = []
 
@@ -91,7 +102,9 @@ def uyum_hesapla(kisi1, kisi2):
     else:
         aciklamalar.append("Gürültü toleranslarınız farklı.")
 
-    if ozellikler["evcil_hayvan_tercihi_ayni"] == 1:
+    if tercih_esnek:
+        aciklamalar.append("En az biriniz için evcil hayvan tercihi fark etmiyor.")
+    elif ozellikler["evcil_hayvan_tercihi_ayni"] == 1:
         aciklamalar.append("Evcil hayvan kabul tercihleriniz aynı.")
     else:
         aciklamalar.append("Evcil hayvan kabul tercihleriniz farklı.")

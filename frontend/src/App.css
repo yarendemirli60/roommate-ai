@@ -225,7 +225,7 @@ footer p { font-size: 12px; color: #898597; }
 .navbar { padding-top: 14px; padding-bottom: 14px; }
 .nav-actions { display: flex; align-items: center; gap: 24px; }
 .login-link { font-size: 14px; font-weight: 700; }
-.mobile-logout { display: none; border: 0; padding: 4px 0; background: transparent; font-size: 12px; color: #6b617b; }
+.mobile-logout { display: inline-block; border: 0; padding: 4px 0; background: transparent; font-size: 12px; color: #6b617b; }
 .hero { padding-top: 45px; }
 .hero-copy > p, .feature-card p, .search-heading p, .section-heading > p, footer p { color: #635e73; }
 .hero-note { color: #625b72; }

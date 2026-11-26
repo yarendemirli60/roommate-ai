@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'accounts',
     'profil',
     'mesajlar.apps.MesajlarConfig',
+    'ilanlar',
 ]
 
 MIDDLEWARE = [
